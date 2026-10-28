@@ -448,6 +448,7 @@ export default function DashboardPage() {
                     strokeWidth={3}
                     fill="url(#trendGradient)"
                     name={isWildfire ? "Titik Panas Satelit" : "Curah Hujan (mm)"}
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -476,7 +477,7 @@ export default function DashboardPage() {
                       color: "#fff",
                     }}
                   />
-                  <Bar dataKey="score" fill={isWildfire ? "#f59e0b" : "#34d399"} radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="score" fill={isWildfire ? "#f59e0b" : "#34d399"} radius={[8, 8, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

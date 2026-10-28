@@ -5,10 +5,10 @@ import { Activity, ShieldCheck, Flame, Waves, ShieldAlert } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { recommendations as floodRecommendations } from "@/lib/demo-data";
 import { wildfireRecommendations } from "@/lib/wildfire-data";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 
 export default function RecommendationsPage() {
-  const { hazardMode, setHazardMode } = useRealtimeTelemetry();
+  const { hazardMode, setHazardMode } = useHazardControl();
   const [filterMode, setFilterMode] = useState<"all" | "flood" | "wildfire">(
     hazardMode === "wildfire" ? "wildfire" : "flood"
   );

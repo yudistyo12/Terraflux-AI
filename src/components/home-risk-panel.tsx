@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { ArrowUpRight, MapPinned } from "lucide-react";
 import { demoAreas, type DemoArea } from "@/lib/demo-data";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 import { getWildfireMetrics } from "@/lib/wildfire-data";
 
 const riskColors: Record<DemoArea["riskLevel"], string> = {
@@ -33,7 +33,7 @@ function getPlotPosition([longitude, latitude]: DemoArea["center"]) {
 }
 
 export function HomeRiskPanel() {
-  const { hazardMode } = useRealtimeTelemetry();
+  const { hazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
   const [activeAreaId, setActiveAreaId] = useState("dki");
   const activeArea = useMemo(

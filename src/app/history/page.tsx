@@ -5,10 +5,10 @@ import { Search, Flame, Waves, ShieldAlert, History as HistoryIcon, CheckCircle2
 import { AppShell } from "@/components/app-shell";
 import { historyReports as floodReports } from "@/lib/demo-data";
 import { wildfireHistoryReports } from "@/lib/wildfire-data";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 
 export default function HistoryPage() {
-  const { hazardMode } = useRealtimeTelemetry();
+  const { hazardMode } = useHazardControl();
   const [query, setQuery] = useState("");
   const [hazardFilter, setHazardFilter] = useState<"all" | "flood" | "wildfire">(
     hazardMode === "wildfire" ? "wildfire" : "all"

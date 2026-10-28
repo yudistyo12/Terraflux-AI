@@ -82,14 +82,16 @@ export function HeroRadarCommand() {
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-[32px] border p-5 sm:p-7 lg:p-8 shadow-2xl transition-colors duration-500 h-scanline ${
-      isWildfire
-        ? "border-amber-500/30 bg-gradient-to-b from-[#1c1007] via-[#0f0905] to-[#040811] shadow-amber-950/40 breathe-border-amber"
-        : "border-cyan-500/25 bg-gradient-to-b from-[#091528] via-[#060c18] to-[#040811] shadow-cyan-950/40 breathe-border-cyan"
-    }`}>
+    <div
+      style={{ contain: "layout paint", transform: "translateZ(0)" }}
+      className={`relative overflow-hidden rounded-[32px] border p-5 sm:p-7 lg:p-8 shadow-2xl h-scanline ${
+        isWildfire
+          ? "border-amber-500/35 bg-gradient-to-b from-[#1c1007] via-[#0f0905] to-[#040811] shadow-[0_0_35px_-8px_rgba(251,191,36,0.25)]"
+          : "border-cyan-500/30 bg-gradient-to-b from-[#091528] via-[#060c18] to-[#040811] shadow-[0_0_35px_-8px_rgba(56,189,248,0.2)]"
+      }`}
+    >
       {/* Background Cyber Grid & Radar Lines */}
       <div className="absolute inset-0 hud-grid-bg opacity-35 pointer-events-none" />
-      <div className="scanline-bar" />
 
       {/* Header HUD Bar */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
@@ -99,7 +101,7 @@ export function HeroRadarCommand() {
               ? "border-amber-400/50 bg-amber-500/10 text-amber-300 shadow-amber-500/20"
               : "border-cyan-400/40 bg-cyan-500/10 text-cyan-300 shadow-cyan-500/20"
           }`}>
-            {isWildfire ? <Flame className="h-5 w-5 animate-pulse" /> : <Radio className="h-5 w-5 animate-pulse" />}
+            {isWildfire ? <Flame className="h-5 w-5" /> : <Radio className="h-5 w-5" />}
             <span className="absolute -top-1 -right-1 flex h-3 w-3">
               <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${isWildfire ? "bg-amber-400" : "bg-cyan-400"}`}></span>
               <span className={`relative inline-flex h-3 w-3 rounded-full ${isWildfire ? "bg-amber-500" : "bg-cyan-500"}`}></span>
@@ -160,8 +162,11 @@ export function HeroRadarCommand() {
 
       {/* Main Radar Screen + Telemetry Panel */}
       <div className="relative z-10 mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr] items-stretch">
-        {/* LEFT: Interactive Archipelago Radar Screen */}
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-slate-950/85 p-4 min-h-[380px] sm:min-h-[430px]">
+        {/* LEFT: Interactive Archipelago Radar Screen — 120fps GPU Isolated */}
+        <div
+          style={{ contain: "paint", transform: "translateZ(0)" }}
+          className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-4 min-h-[380px] sm:min-h-[430px]"
+        >
           {/* Radar range rings */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
             <div className={`h-64 w-64 rounded-full border ${isWildfire ? "border-amber-400" : "border-cyan-400"}`} />
@@ -169,15 +174,15 @@ export function HeroRadarCommand() {
             <div className={`absolute h-[500px] w-[500px] rounded-full border border-dashed ${isWildfire ? "border-amber-400/40" : "border-cyan-400/40"}`} />
           </div>
 
-          {/* Rotating conical radar sweep */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-35">
-            <div className={`radar-sweep-cone h-[420px] w-[420px] rounded-full ${isWildfire ? "opacity-30 hue-rotate-30" : ""}`} />
+          {/* Rotating conical radar sweep — 120fps Hardware Isolated */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-35" style={{ contain: "strict" }}>
+            <div className={`h-[420px] w-[420px] rounded-full ${isWildfire ? "radar-sweep-cone-amber" : "radar-sweep-cone"}`} />
           </div>
 
           {/* Top HUD stats on map */}
           <div className="relative z-20 flex items-center justify-between text-[11px] font-mono text-slate-300">
             <div className="flex items-center gap-2">
-              <Compass className={`h-3.5 w-3.5 animate-spin ${isWildfire ? "text-amber-400" : "text-cyan-400"}`} style={{ animationDuration: "12s" }} />
+              <Compass className={`h-3.5 w-3.5 ${isWildfire ? "text-amber-400" : "text-cyan-400"}`} />
               <span className="font-bold">
                 CAKUPAN RADAR: 94° BT - 142° BT · 6° LU - 11° LS
               </span>
@@ -240,24 +245,24 @@ export function HeroRadarCommand() {
                   title={`${area.name} · ${isWildfire ? `${wf.hotspotSignals} Titik Panas` : `${area.rainfallToday}mm/jam`}`}
                 >
                   <div className="relative flex items-center justify-center">
-                    {(isSelected || riskLvl === "very-high") && (
+                    {isSelected && (
                       <span
-                        className="absolute h-6 w-6 rounded-full animate-ping opacity-75"
+                        className="absolute h-6 w-6 rounded-full animate-ping opacity-75 pointer-events-none"
                         style={{ backgroundColor: color }}
                       />
                     )}
                     <span
-                      className="relative h-3.5 w-3.5 rounded-full border-2 border-slate-950 shadow-md transition-all duration-200"
+                      className="relative h-3.5 w-3.5 rounded-full border-2 border-slate-950 shadow-md"
                       style={{
                         backgroundColor: color,
                         boxShadow: isSelected ? `0 0 14px 4px ${color}` : "none",
                       }}
                     />
 
-                    {/* Popover label on hover or select */}
+                    {/* Popover label on hover or select — 120fps solid panel without backdrop-blur */}
                     {isSelected && (
-                      <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg border bg-slate-950/95 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 ${
-                        isWildfire ? "border-amber-400/50 shadow-amber-950/80" : "border-cyan-400/50 shadow-cyan-950/80"
+                      <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg border bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xl ${
+                        isWildfire ? "border-amber-400/60 shadow-amber-950/80" : "border-cyan-400/60 shadow-cyan-950/80"
                       }`}>
                         <span className={isWildfire ? "text-amber-300 font-bold" : "text-cyan-300 font-bold"}>
                           {area.name}
@@ -300,7 +305,10 @@ export function HeroRadarCommand() {
         </div>
 
         {/* RIGHT: High-Tech Telemetry HUD Card Tailored to Hazard */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-950/90 p-5 shadow-xl shadow-black/40">
+        <div
+          style={{ contain: "layout paint" }}
+          className="flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-950/90 p-5 shadow-xl shadow-black/40"
+        >
           <div>
             {/* Target Header */}
             <div className="flex items-start justify-between border-b border-white/10 pb-4">

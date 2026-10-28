@@ -16,13 +16,14 @@ import {
   Droplets,
   SunMedium,
   ShieldCheck,
+  Camera,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { HeroRadarCommand } from "@/components/hero-radar-command";
 import { LiveAiDiagnosisCard } from "@/components/live-ai-diagnosis-card";
 import { QuickMitigationSandbox } from "@/components/quick-mitigation-sandbox";
 import { demoAreas } from "@/lib/demo-data";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 import { getWildfireMetrics } from "@/lib/wildfire-data";
 
 const floodPillars = [
@@ -109,7 +110,7 @@ function useScrollReveal() {
           }
         });
       },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.02, rootMargin: "150px 0px 50px 0px" }
     );
 
     refs.current.forEach((el) => {
@@ -127,7 +128,7 @@ function useScrollReveal() {
 }
 
 export default function HomePage() {
-  const { setSelectedProvinceId, hazardMode } = useRealtimeTelemetry();
+  const { setSelectedProvinceId, hazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
   const setRef = useScrollReveal();
 
@@ -170,76 +171,80 @@ export default function HomePage() {
   return (
     <AppShell>
       <main className="space-y-10 sm:space-y-12 lg:space-y-14">
-        {/* HERO SECTION WITH DYNAMIC DISASTER BACKGROUND */}
-        <section className={`relative overflow-hidden rounded-[32px] sm:rounded-[36px] border bg-slate-950/80 px-5 sm:px-8 lg:px-10 py-8 sm:py-12 shadow-2xl backdrop-blur-xl h-scanline anim-reveal-up ${
-          isWildfire ? "breathe-border-amber" : "breathe-border-cyan"
-        }`}>
-          {/* Dynamic Photographic Backdrop — CLEARER with Ken Burns */}
-          <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-            {/* Flood Backdrop — HIGH CLARITY */}
-            <div
-              className={`absolute inset-0 bg-cover bg-center ken-burns-bg transition-all duration-1000 ease-in-out ${
-                !isWildfire ? "opacity-100" : "opacity-0"
-              }`}
-              style={{
-                backgroundImage: "url('/images/flood-hero-bg.jpg')",
-                filter: "brightness(0.52) contrast(1.2) saturate(1.25)",
-              }}
-            />
-            {/* Wildfire Backdrop — HIGH CLARITY */}
-            <div
-              className={`absolute inset-0 bg-cover bg-center ken-burns-bg transition-all duration-1000 ease-in-out ${
-                isWildfire ? "opacity-100" : "opacity-0"
-              }`}
-              style={{
-                backgroundImage: "url('/images/wildfire-hero-bg.jpg')",
-                filter: "brightness(0.52) contrast(1.25) saturate(1.3)",
-              }}
-            />
+        {/* HERO SECTION WITH DYNAMIC DISASTER BACKGROUND — 120fps GPU Composited */}
+        <section
+          style={{ contain: "layout paint" }}
+          className={`relative overflow-hidden rounded-[32px] sm:rounded-[36px] border border-white/15 px-5 sm:px-8 lg:px-10 py-8 sm:py-12 shadow-2xl h-scanline anim-reveal-up transform-gpu ${
+            isWildfire ? "breathe-border-amber" : "breathe-border-cyan"
+          }`}
+        >
+          {/* Dynamic Photographic Backdrop — 120fps GPU Isolated with Ken Burns */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" style={{ contain: "strict" }}>
+            {/* Deep foundation background color to prevent flash */}
+            <div className="absolute inset-0 bg-slate-950" />
 
-            {/* Gradient Overlays — LIGHTER for image clarity */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent" />
+            {/* Flood Backdrop — Render only when active to avoid dual-GPU overhead */}
+            {!isWildfire && (
+              <div
+                className="absolute inset-0 bg-cover bg-right sm:bg-center ken-burns-bg pointer-events-none"
+                style={{
+                  backgroundImage: "url('/images/flood-hero-bg.jpg')",
+                }}
+              />
+            )}
+            {/* Wildfire Backdrop — Render only when active to avoid dual-GPU overhead */}
+            {isWildfire && (
+              <div
+                className="absolute inset-0 bg-cover bg-right sm:bg-center ken-burns-bg pointer-events-none"
+                style={{
+                  backgroundImage: "url('/images/wildfire-hero-bg.jpg')",
+                }}
+              />
+            )}
+
+            {/* Smart Gradient Overlays — Text readability on left, crystal clear photo on right */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/55 to-slate-950/15 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20 pointer-events-none" />
             <div
-              className={`absolute inset-0 transition-all duration-700 ${
+              className={`absolute inset-0 transition-opacity duration-700 pointer-events-none ${
                 isWildfire
-                  ? "bg-[radial-gradient(ellipse_at_30%_30%,rgba(249,115,22,0.28),transparent_70%)]"
-                  : "bg-[radial-gradient(ellipse_at_30%_30%,rgba(56,189,248,0.25),transparent_70%)]"
+                  ? "bg-[radial-gradient(ellipse_at_85%_40%,rgba(249,115,22,0.2),transparent_65%)]"
+                  : "bg-[radial-gradient(ellipse_at_85%_40%,rgba(56,189,248,0.18),transparent_65%)]"
               }`}
             />
             {/* High-tech telemetry grid lines */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px] opacity-30" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20 pointer-events-none" />
 
-            {/* Floating holographic particles */}
-            <div className={`floating-particle w-2 h-2 top-[15%] left-[20%] ${isWildfire ? 'bg-amber-400/40' : 'bg-cyan-400/40'}`} />
-            <div className={`floating-particle w-1.5 h-1.5 top-[35%] left-[75%] ${isWildfire ? 'bg-orange-400/30' : 'bg-teal-400/30'}`} style={{ animationDelay: '1s' }} />
-            <div className={`floating-particle-slow w-3 h-3 top-[60%] left-[45%] ${isWildfire ? 'bg-rose-400/20' : 'bg-emerald-400/20'}`} style={{ animationDelay: '2s' }} />
-            <div className={`floating-particle w-1 h-1 top-[25%] left-[60%] ${isWildfire ? 'bg-yellow-400/50' : 'bg-sky-400/50'}`} style={{ animationDelay: '3s' }} />
-            <div className={`floating-particle-slow w-2 h-2 top-[70%] left-[80%] ${isWildfire ? 'bg-amber-300/25' : 'bg-cyan-300/25'}`} style={{ animationDelay: '4s' }} />
-            <div className={`floating-particle w-1.5 h-1.5 top-[50%] left-[10%] ${isWildfire ? 'bg-orange-300/35' : 'bg-teal-300/35'}`} style={{ animationDelay: '1.5s' }} />
+            {/* RESTORED ANIMATED FLOATING PARTICLES & DATA RAIN (120fps GPU Isolated) */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ contain: "strict" }}>
+              <div className={`floating-particle w-2.5 h-2.5 top-[15%] left-[22%] ${isWildfire ? 'bg-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'bg-cyan-400/60 shadow-[0_0_8px_rgba(56,189,248,0.8)]'}`} />
+              <div className={`floating-particle w-1.5 h-1.5 top-[35%] left-[72%] ${isWildfire ? 'bg-orange-400/50 shadow-[0_0_6px_rgba(249,115,22,0.8)]' : 'bg-teal-400/50 shadow-[0_0_6px_rgba(45,212,191,0.8)]'}`} style={{ animationDelay: '1s' }} />
+              <div className={`floating-particle-slow w-3 h-3 top-[55%] left-[45%] ${isWildfire ? 'bg-rose-400/40 shadow-[0_0_10px_rgba(244,63,94,0.7)]' : 'bg-emerald-400/40 shadow-[0_0_10px_rgba(52,211,153,0.7)]'}`} style={{ animationDelay: '2s' }} />
+              <div className={`floating-particle w-2 h-2 top-[22%] left-[60%] ${isWildfire ? 'bg-yellow-400/70 shadow-[0_0_8px_rgba(250,204,21,0.9)]' : 'bg-sky-400/70 shadow-[0_0_8px_rgba(56,189,248,0.9)]'}`} style={{ animationDelay: '3s' }} />
+              <div className={`floating-particle-slow w-2.5 h-2.5 top-[70%] left-[82%] ${isWildfire ? 'bg-amber-300/45 shadow-[0_0_8px_rgba(252,211,77,0.8)]' : 'bg-cyan-300/45 shadow-[0_0_8px_rgba(103,232,249,0.8)]'}`} style={{ animationDelay: '4s' }} />
+              <div className={`floating-particle w-1.5 h-1.5 top-[52%] left-[12%] ${isWildfire ? 'bg-orange-300/50 shadow-[0_0_6px_rgba(253,186,116,0.8)]' : 'bg-teal-300/50 shadow-[0_0_6px_rgba(94,234,212,0.8)]'}`} style={{ animationDelay: '1.5s' }} />
 
-            {/* Data stream rain lines */}
-            <div className="data-rain-line left-[12%] top-0" style={{ animationDelay: '0s', animationDuration: '4s' }} />
-            <div className="data-rain-line left-[28%] top-0" style={{ animationDelay: '1.2s', animationDuration: '3.5s' }} />
-            <div className="data-rain-line left-[55%] top-0" style={{ animationDelay: '2.4s', animationDuration: '4.5s' }} />
-            <div className="data-rain-line left-[78%] top-0" style={{ animationDelay: '0.8s', animationDuration: '3.8s' }} />
-            <div className="data-rain-line left-[92%] top-0" style={{ animationDelay: '3s', animationDuration: '4.2s' }} />
+              {/* RESTORED DATA STREAM RAIN LINES */}
+              <div className={`data-rain-line left-[14%] top-0 ${isWildfire ? '!bg-[linear-gradient(to_bottom,transparent,rgba(251,191,36,0.7),transparent)]' : ''}`} style={{ animationDelay: '0s', animationDuration: '4s' }} />
+              <div className={`data-rain-line left-[32%] top-0 ${isWildfire ? '!bg-[linear-gradient(to_bottom,transparent,rgba(249,115,22,0.6),transparent)]' : ''}`} style={{ animationDelay: '1.2s', animationDuration: '3.5s' }} />
+              <div className={`data-rain-line left-[58%] top-0 ${isWildfire ? '!bg-[linear-gradient(to_bottom,transparent,rgba(245,158,11,0.7),transparent)]' : ''}`} style={{ animationDelay: '2.4s', animationDuration: '4.5s' }} />
+              <div className={`data-rain-line left-[76%] top-0 ${isWildfire ? '!bg-[linear-gradient(to_bottom,transparent,rgba(251,146,60,0.6),transparent)]' : ''}`} style={{ animationDelay: '0.8s', animationDuration: '3.8s' }} />
+              <div className={`data-rain-line left-[90%] top-0 ${isWildfire ? '!bg-[linear-gradient(to_bottom,transparent,rgba(251,191,36,0.7),transparent)]' : ''}`} style={{ animationDelay: '3s', animationDuration: '4.2s' }} />
+            </div>
           </div>
 
-          {/* Reconnaissance Telemetry Live Indicator Tag */}
-          <div className="absolute top-4 right-5 hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/80 px-3.5 py-1 font-mono text-[10px] text-slate-300 backdrop-blur-md shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${isWildfire ? "bg-amber-400" : "bg-cyan-400"}`} />
-              <span className={`relative inline-flex h-2 w-2 rounded-full ${isWildfire ? "bg-amber-500" : "bg-cyan-500"}`} />
-            </span>
-            <span>
+          {/* Clean Background Photo Label Tag */}
+          <div className="absolute top-4 right-5 hidden sm:flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/90 px-3.5 py-1.5 font-mono text-[11px] text-slate-200 shadow-lg z-20">
+            <Camera className={`h-3.5 w-3.5 ${isWildfire ? "text-amber-400" : "text-cyan-400"}`} />
+            <span className="text-slate-400 font-sans">Foto Dokumentasi Latar:</span>
+            <span className="font-semibold text-white">
               {isWildfire
-                ? "CITRA SATELIT: ANOMALI TERMAL KARHUTLA & VEGETASI"
-                : "CITRA OBSERVASI: DAMPAK SEDIMEN BANJIR SUMATERA"}
+                ? "Garis Api Karhutla & Asap Tajuk Hutan"
+                : "Banjir Lahar Dingin & Sedimentasi DAS (Sumatera Barat)"}
             </span>
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
             {/* Left Hero Content */}
             <div className="max-w-2xl space-y-6">
               {/* Status Badge */}
@@ -277,6 +282,16 @@ export default function HomePage() {
                   ? "Platform geospasial mutakhir untuk memantau anomali titik panas satelit, mengevaluasi indeks kekeringan vegetasi, memantau kubah gambut kritis, dan menguji skenario mitigasi berbasis data sains."
                   : "Platform geospasial mutakhir untuk menganalisis presipitasi curah hujan, memantau dinamika muka air sungai, memetakan defisit drainase perkotaan, dan menyimulasikan intervensi mitigasi secara presisi."}
               </p>
+
+              {/* Background Photo Context Badge — 120fps Solid Dark Tech Panel */}
+              <div className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 bg-slate-950/90 px-3.5 py-2 text-xs text-slate-200 anim-reveal-up anim-delay-3 shadow-md">
+                <Camera className={`h-4 w-4 shrink-0 ${isWildfire ? "text-amber-400" : "text-cyan-400"}`} />
+                <span className="leading-snug">
+                  {isWildfire
+                    ? "Foto latar menampilkan kondisi riil garis api aktif (flame front) membakar tajuk kanopi vegetasi & kepulan asap pekat karhutla."
+                    : "Foto latar menampilkan kondisi riil genangan sedimentasi pekat & banjir lahar dingin yang melanda permukiman DAS Sumatera Barat."}
+                </span>
+              </div>
 
               {/* 3 Core Hazard Indicators — Staggered Animation */}
               <div className="grid gap-3 sm:grid-cols-3 anim-reveal-up anim-delay-4">
@@ -355,13 +370,13 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right Hero KPI Matrix — Shimmer + Reveal */}
+            {/* Right Hero KPI Matrix — 120fps GPU Composited */}
             <div className="grid grid-cols-2 gap-3.5 w-full max-w-md anim-reveal-right anim-delay-3">
               {kpiStats.map((kpi, idx) => (
                 <div
                   key={kpi.label}
-                  className={`rounded-2xl border bg-slate-900/75 p-4.5 backdrop-blur-md shadow-lg shimmer-overlay card-hover-lift ${
-                    isWildfire ? "border-amber-500/20 shadow-amber-950/20" : "border-cyan-500/20 shadow-cyan-950/20"
+                  className={`rounded-2xl border bg-slate-900/90 p-4.5 shadow-lg card-hover-lift ${
+                    isWildfire ? "border-amber-500/25 shadow-amber-950/20" : "border-cyan-500/25 shadow-cyan-950/20"
                   }`}
                   style={{ animationDelay: `${0.4 + idx * 0.15}s` }}
                 >
@@ -381,13 +396,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* HERO CENTERPIECE: ARCHIPELAGO RADAR COMMAND CENTER */}
-        <section ref={setRef(0)} className="relative section-animate">
+        {/* HERO CENTERPIECE: ARCHIPELAGO RADAR COMMAND CENTER — Rock-solid 120fps Static GPU Layer */}
+        <section className="relative" style={{ contain: "layout paint" }}>
           <HeroRadarCommand />
         </section>
 
         {/* DUAL REAL-TIME INTERACTIVE STUDIOS */}
-        <section ref={setRef(1)} className="space-y-6 section-animate">
+        <section ref={setRef(0)} className="space-y-6 section-animate">
           <div className="text-center max-w-2xl mx-auto">
             <div className={`inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest ${
               isWildfire ? "text-amber-400" : "text-cyan-400"
@@ -415,7 +430,7 @@ export default function HomePage() {
         </section>
 
         {/* 4 CORE PLATFORM PILLARS */}
-        <section ref={setRef(2)} className="rounded-[32px] border border-white/10 bg-gradient-to-b from-slate-900/60 to-slate-950/80 p-6 sm:p-10 section-animate">
+        <section ref={setRef(1)} className="rounded-[32px] border border-white/10 bg-gradient-to-b from-slate-900/60 to-slate-950/80 p-6 sm:p-10 section-animate">
           <div className="max-w-2xl">
             <div className={`text-xs font-mono uppercase tracking-widest ${isWildfire ? "text-amber-400" : "text-cyan-300"}`}>
               KEUNGGULAN INOVASI MULTI-BAHAYA
@@ -459,7 +474,7 @@ export default function HomePage() {
         </section>
 
         {/* NATIONAL RISK LEADERBOARD TABLE */}
-        <section ref={setRef(3)} className="rounded-[32px] border border-white/10 bg-slate-900/80 p-6 sm:p-8 section-animate">
+        <section ref={setRef(2)} className="rounded-[32px] border border-white/10 bg-slate-900/80 p-6 sm:p-8 section-animate">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
             <div>
               <div className={`text-xs font-mono uppercase tracking-widest ${isWildfire ? "text-amber-400" : "text-cyan-300"}`}>
@@ -557,7 +572,7 @@ export default function HomePage() {
         </section>
 
         {/* SDG ALIGNMENT & CLOSING BANNER */}
-        <section ref={setRef(4)} className="grid gap-6 lg:grid-cols-2 section-animate">
+        <section ref={setRef(3)} className="grid gap-6 lg:grid-cols-2 section-animate">
           {/* SDG Impact Box */}
           <div className="rounded-[28px] border border-white/10 bg-slate-900/80 p-6 sm:p-8">
             <div className="text-xs font-mono uppercase tracking-widest text-emerald-300">

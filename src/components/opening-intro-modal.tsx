@@ -12,10 +12,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 
 export function OpeningIntroModal() {
-  const { isPresentationMode, setIsPresentationMode } = useRealtimeTelemetry();
+  const { isPresentationMode, setIsPresentationMode } = useHazardControl();
   const [showAutoIntro, setShowAutoIntro] = useState(() => {
     if (typeof window !== "undefined") {
       const hasSeen = sessionStorage.getItem("terraflux_intro_seen");

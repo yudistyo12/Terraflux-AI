@@ -1,6 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { demoAreas, type DemoArea } from "./demo-data";
 import { getWildfireMetrics, type WildfireMetrics } from "./wildfire-data";
 
@@ -16,19 +24,25 @@ export interface SensorAlert {
   value: string;
 }
 
-export interface RealtimeState {
-  currentTimeWIB: string;
-  currentTimeWITA: string;
-  currentTimeWIT: string;
+export interface HazardControlState {
   hazardMode: HazardMode;
   setHazardMode: (mode: HazardMode) => void;
   scenario: WeatherScenario;
   setScenario: (s: WeatherScenario) => void;
-  activeSensorsCount: number;
   selectedProvinceId: string;
   setSelectedProvinceId: (id: string) => void;
   selectedProvince: DemoArea;
   wildfireMetrics: WildfireMetrics;
+  isPresentationMode: boolean;
+  setIsPresentationMode: (val: boolean) => void;
+  disclaimerText: string;
+}
+
+export interface LiveTelemetryState {
+  currentTimeWIB: string;
+  currentTimeWITA: string;
+  currentTimeWIT: string;
+  activeSensorsCount: number;
   // Flood dynamic metrics
   liveRainfall: number;
   liveWaterLevel: number;
@@ -40,12 +54,12 @@ export interface RealtimeState {
   livePeatMoisture: number;
   liveFireSpread: number;
   alerts: SensorAlert[];
-  isPresentationMode: boolean;
-  setIsPresentationMode: (val: boolean) => void;
-  disclaimerText: string;
 }
 
-const RealtimeContext = createContext<RealtimeState | null>(null);
+export type RealtimeState = HazardControlState & LiveTelemetryState;
+
+const HazardControlContext = createContext<HazardControlState | null>(null);
+const LiveTelemetryContext = createContext<LiveTelemetryState | null>(null);
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [hazardMode, setHazardMode] = useState<HazardMode>(() => {
@@ -58,27 +72,54 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [scenario, setScenario] = useState<WeatherScenario>("monsoon");
   const [selectedProvinceId, setSelectedProvinceId] = useState<string>("dki");
   const [isPresentationMode, setIsPresentationMode] = useState<boolean>(false);
-  const [now, setNow] = useState<Date>(new Date());
-  const [tick, setTick] = useState<number>(0);
 
-  const selectHazardMode = (mode: HazardMode) => {
+  // Time & Simulation Tick (throttled & paused when tab is inactive)
+  const [now, setNow] = useState<Date | null>(null);
+  const [tick, setTick] = useState<number>(0);
+  const isVisibleRef = useRef<boolean>(true);
+
+  const selectHazardMode = useCallback((mode: HazardMode) => {
     setHazardMode(mode);
     if (typeof window !== "undefined") {
       window.localStorage.setItem("terraflux-hazard-mode", mode);
     }
-  };
+  }, []);
 
-  // Time ticker
+  // Optimized ticker: runs at 2.5s interval to save battery and GPU/CPU cycles
   useEffect(() => {
-    const timer = setInterval(() => {
+    const initialTimer = setTimeout(() => {
       setNow(new Date());
-      setTick((t) => t + 1);
-    }, 1000);
-    return () => clearInterval(timer);
+    }, 0);
+
+    const handleVisibility = () => {
+      isVisibleRef.current = document.visibilityState === "visible";
+    };
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibility);
+    }
+
+    const timer = setInterval(() => {
+      if (isVisibleRef.current) {
+        setNow(new Date());
+        setTick((t) => (t + 1) % 1000);
+      }
+    }, 2500);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibility);
+      }
+    };
   }, []);
 
   const formatClock = useCallback(
     (offsetHours: number) => {
+      if (!now) {
+        return "12:00:00";
+      }
       const d = new Date(now.getTime() + (offsetHours - 7) * 3600000);
       return d.toLocaleTimeString("id-ID", {
         hour: "2-digit",
@@ -158,22 +199,24 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     return Math.min(98, Math.max(10, Math.round(base + wave)));
   }, [tick, wildfireMetrics.fireSpreadRisk, scenarioMultiplier]);
 
-  // Dynamic alerts adapting to hazardMode
+  // Dynamic alerts adapting to hazardMode and scenario with STABLE references
   const alerts = useMemo<SensorAlert[]>(() => {
-    const timeStr = formatClock(7);
     if (hazardMode === "wildfire") {
       return [
         {
           id: "alt-wf-1",
-          time: timeStr,
+          time: "LIVE",
           location: "Riau · Kubah Gambut Siak & Bengkalis",
           type: scenario === "cyclone" ? "danger" : "warning",
-          message: scenario === "cyclone" ? "Siaga 1 Darurat Karhutla · 14 Hotspot Terkonfirmasi" : "Patroli Manggala Agni Terjun ke Parit Api",
+          message:
+            scenario === "cyclone"
+              ? "Siaga 1 Darurat Karhutla · 14 Hotspot Terkonfirmasi"
+              : "Patroli Manggala Agni Terjun ke Parit Api",
           value: "Suhu Gambut 41°C",
         },
         {
           id: "alt-wf-2",
-          time: timeStr,
+          time: "LIVE",
           location: "Kalteng · Kawasan PLG Pulang Pisau",
           type: "danger",
           message: "TMA Gambut Kritis -54cm di bawah ambang batas BRGM",
@@ -181,7 +224,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         },
         {
           id: "alt-wf-3",
-          time: timeStr,
+          time: "LIVE",
           location: "Sumsel · Rawa Gambut Ogan Komering Ilir",
           type: "warning",
           message: "Operasi Water Bombing 2 Heli BNPB Standby",
@@ -189,7 +232,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         },
         {
           id: "alt-wf-4",
-          time: timeStr,
+          time: "LIVE",
           location: "NTT · Padang Sabana Sumba Timur",
           type: scenario === "cyclone" ? "danger" : "warning",
           message: "Kecepatan Angin Tenggara Melonjak 27 km/jam",
@@ -197,7 +240,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         },
         {
           id: "alt-wf-5",
-          time: timeStr,
+          time: "LIVE",
           location: "Kalbar · Kubu Raya Pesisir",
           type: "info",
           message: "Sekat Kanal Ditutup untuk Retensi Pembasahan Gambut",
@@ -209,15 +252,18 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     return [
       {
         id: "alt-fl-1",
-        time: timeStr,
+        time: "LIVE",
         location: "DKI Jakarta · Pintu Air Manggarai",
         type: scenario === "cyclone" ? "danger" : "warning",
-        message: scenario === "cyclone" ? "Status Siaga 1 (Kritis) - Debit 890 cm" : "Status Siaga 2 - Debit 760 cm",
+        message:
+          scenario === "cyclone"
+            ? "Status Siaga 1 (Kritis) - Debit 890 cm"
+            : "Status Siaga 2 - Debit 760 cm",
         value: "760 cm",
       },
       {
         id: "alt-fl-2",
-        time: timeStr,
+        time: "LIVE",
         location: "Semarang · Kali Garang & Kanal Barat",
         type: "warning",
         message: "Pompa Otomatis 5 Unit Aktif 100%",
@@ -225,7 +271,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       },
       {
         id: "alt-fl-3",
-        time: timeStr,
+        time: "LIVE",
         location: "Banjarmasin · Sungai Martapura",
         type: scenario === "cyclone" ? "danger" : "info",
         message: "Pasang Perbani + Luapan Alur Muara",
@@ -233,7 +279,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       },
       {
         id: "alt-fl-4",
-        time: timeStr,
+        time: "LIVE",
         location: "Bandung · DAS Citarum Dayeuhkolot",
         type: "warning",
         message: "Limpasan hulu meningkat 18% dalam 30 menit",
@@ -241,56 +287,119 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       },
       {
         id: "alt-fl-5",
-        time: timeStr,
+        time: "LIVE",
         location: "Makassar · Pintu Pengendali Tallo",
         type: "info",
         message: "Sensor radar curah hujan mencatat akumulasi 64mm",
         value: "Normal",
       },
     ];
-  }, [hazardMode, scenario, formatClock]);
+  }, [hazardMode, scenario]);
 
   const disclaimerText =
     "TERRAFLUX AI menyajikan model screening multi-bahaya terpadu dengan data simulasi dan indikator konseptual untuk keperluan demonstrasi akademik dan eksplorasi kesiapsiagaan bencana. Data ini bukan instrumen pemantauan operasional resmi BMKG/KLHK/BNPB.";
 
+  // STABLE Hazard Control Context Value (Only changes on user action!)
+  const hazardControlValue = useMemo<HazardControlState>(
+    () => ({
+      hazardMode,
+      setHazardMode: selectHazardMode,
+      scenario,
+      setScenario,
+      selectedProvinceId,
+      setSelectedProvinceId,
+      selectedProvince,
+      wildfireMetrics,
+      isPresentationMode,
+      setIsPresentationMode,
+      disclaimerText,
+    }),
+    [
+      hazardMode,
+      selectHazardMode,
+      scenario,
+      selectedProvinceId,
+      selectedProvince,
+      wildfireMetrics,
+      isPresentationMode,
+    ]
+  );
+
+  // Dynamic Telemetry Context Value
+  const liveTelemetryValue = useMemo<LiveTelemetryState>(
+    () => ({
+      currentTimeWIB: `${formatClock(7)} WIB`,
+      currentTimeWITA: `${formatClock(8)} WITA`,
+      currentTimeWIT: `${formatClock(9)} WIT`,
+      activeSensorsCount: demoAreas.length * 4 + 18,
+      liveRainfall,
+      liveWaterLevel,
+      liveRunoff,
+      liveHotspots,
+      liveDryness,
+      liveWindSpeed,
+      livePeatMoisture,
+      liveFireSpread,
+      alerts,
+    }),
+    [
+      formatClock,
+      liveRainfall,
+      liveWaterLevel,
+      liveRunoff,
+      liveHotspots,
+      liveDryness,
+      liveWindSpeed,
+      livePeatMoisture,
+      liveFireSpread,
+      alerts,
+    ]
+  );
+
   return (
-    <RealtimeContext.Provider
-      value={{
-        currentTimeWIB: `${formatClock(7)} WIB`,
-        currentTimeWITA: `${formatClock(8)} WITA`,
-        currentTimeWIT: `${formatClock(9)} WIT`,
-        hazardMode,
-        setHazardMode: selectHazardMode,
-        scenario,
-        setScenario,
-        activeSensorsCount: demoAreas.length * 4 + 18,
-        selectedProvinceId,
-        setSelectedProvinceId,
-        selectedProvince,
-        wildfireMetrics,
-        liveRainfall,
-        liveWaterLevel,
-        liveRunoff,
-        liveHotspots,
-        liveDryness,
-        liveWindSpeed,
-        livePeatMoisture,
-        liveFireSpread,
-        alerts,
-        isPresentationMode,
-        setIsPresentationMode,
-        disclaimerText,
-      }}
-    >
-      {children}
-    </RealtimeContext.Provider>
+    <HazardControlContext.Provider value={hazardControlValue}>
+      <LiveTelemetryContext.Provider value={liveTelemetryValue}>
+        {children}
+      </LiveTelemetryContext.Provider>
+    </HazardControlContext.Provider>
   );
 }
 
-export function useRealtimeTelemetry() {
-  const ctx = useContext(RealtimeContext);
+/**
+ * Stable hook for components that only need hazard mode, province selection, or scenario.
+ * Will NEVER cause unnecessary re-renders on timer ticks!
+ */
+export function useHazardControl(): HazardControlState {
+  const ctx = useContext(HazardControlContext);
   if (!ctx) {
-    throw new Error("useRealtimeTelemetry must be used within a RealtimeProvider");
+    throw new Error("useHazardControl must be used within a RealtimeProvider");
   }
   return ctx;
+}
+
+/**
+ * Hook for widgets that explicitly display dynamic telemetry metrics (e.g. clock, live numbers).
+ */
+export function useLiveTelemetry(): LiveTelemetryState {
+  const ctx = useContext(LiveTelemetryContext);
+  if (!ctx) {
+    throw new Error("useLiveTelemetry must be used within a RealtimeProvider");
+  }
+  return ctx;
+}
+
+/**
+ * Combined backwards-compatible hook.
+ */
+export function useRealtimeTelemetry(): RealtimeState {
+  const hazard = useHazardControl();
+  const telemetry = useLiveTelemetry();
+
+  return useMemo(
+    () => ({
+      ...hazard,
+      ...telemetry,
+    }),
+    [hazard, telemetry]
+  );
 }

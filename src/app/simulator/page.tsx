@@ -20,7 +20,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { demoAreas } from "@/lib/demo-data";
 import { getWildfireMetrics } from "@/lib/wildfire-data";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 
 type SimulationResult = {
   area: string;
@@ -34,7 +34,7 @@ type SimulationResult = {
 };
 
 export default function SimulatorPage() {
-  const { selectedProvinceId, setSelectedProvinceId, hazardMode, setHazardMode } = useRealtimeTelemetry();
+  const { selectedProvinceId, setSelectedProvinceId, hazardMode, setHazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
 
   const [selectedAreaId, setSelectedAreaId] = useState(selectedProvinceId || "dki");

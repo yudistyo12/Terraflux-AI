@@ -15,11 +15,11 @@ import {
   Droplets,
 } from "lucide-react";
 import Link from "next/link";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 import { getWildfireMetrics } from "@/lib/wildfire-data";
 
 export function QuickMitigationSandbox() {
-  const { selectedProvince, hazardMode } = useRealtimeTelemetry();
+  const { selectedProvince, hazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
 
   const wildfire = getWildfireMetrics(selectedProvince.id);

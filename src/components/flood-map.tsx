@@ -6,7 +6,7 @@ import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Search, RotateCcw, Layers3, Flame, Waves, Wind, Compass, ShieldAlert, ArrowUpRight } from "lucide-react";
 import { demoAreas, type DemoArea } from "@/lib/demo-data";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 import { getWildfireMetrics } from "@/lib/wildfire-data";
 
 const riskColors: Record<DemoArea["riskLevel"], string> = {
@@ -24,7 +24,7 @@ const riskLabels: Record<DemoArea["riskLevel"], string> = {
 };
 
 export function FloodMap() {
-  const { selectedProvinceId, setSelectedProvinceId, hazardMode } = useRealtimeTelemetry();
+  const { selectedProvinceId, setSelectedProvinceId, hazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
 
   const layerOptions = isWildfire
@@ -47,10 +47,21 @@ export function FloodMap() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const riskMarkersRef = useRef<maplibregl.Marker[]>([]);
-  
+  const dotsRef = useRef<HTMLSpanElement[]>([]);
+  const labelsRef = useRef<HTMLSpanElement[]>([]);
+  const setSelectedProvinceIdRef = useRef(setSelectedProvinceId);
+  const isWildfireRef = useRef(isWildfire);
+
   // Single source of truth from telemetry
   const activeAreaId = selectedProvinceId || "dki";
   const activeAreaIdRef = useRef(activeAreaId);
+
+  useEffect(() => {
+    setSelectedProvinceIdRef.current = setSelectedProvinceId;
+    isWildfireRef.current = isWildfire;
+    activeAreaIdRef.current = activeAreaId;
+  }, [setSelectedProvinceId, isWildfire, activeAreaId]);
+
   const [searchValue, setSearchValue] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -71,7 +82,6 @@ export function FloodMap() {
 
   // Synchronize camera when activeAreaId changes
   useEffect(() => {
-    activeAreaIdRef.current = activeAreaId;
     if (mapRef.current) {
       const target = demoAreas.find((a) => a.id === activeAreaId);
       if (target) {
@@ -80,6 +90,19 @@ export function FloodMap() {
     }
   }, [activeAreaId]);
 
+  // Fast label visibility update helper without querying DOM
+  const updateLabelVisibility = useCallback(() => {
+    const isZoomed = (mapRef.current?.getZoom() ?? 0) >= 7.2;
+    const curId = activeAreaIdRef.current;
+    demoAreas.forEach((area, index) => {
+      const label = labelsRef.current[index];
+      if (label) {
+        label.style.display = area.id === curId || isZoomed ? "inline" : "none";
+      }
+    });
+  }, []);
+
+  // Initialize Map ONCE on mount
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -122,27 +145,33 @@ export function FloodMap() {
 
     map.on("load", () => {
       setMapStatus("ready");
-      riskMarkersRef.current = demoAreas.map((area) => {
+
+      dotsRef.current = [];
+      labelsRef.current = [];
+
+      riskMarkersRef.current = demoAreas.map((area, index) => {
         const markerElement = document.createElement("button");
         markerElement.type = "button";
         markerElement.className = "terraflux-risk-marker";
-        const riskLevel = getRiskLevel(area);
+        const riskLevel = isWildfireRef.current ? getWildfireMetrics(area.id).riskLevel : area.riskLevel;
         const wf = getWildfireMetrics(area.id);
         markerElement.setAttribute("aria-label", `${area.name}, risiko ${riskLabels[riskLevel]}`);
-        markerElement.title = `${area.name} · ${isWildfire ? `${wf.hotspotSignals} Titik Panas Satelit` : `Curah Hujan ${area.rainfallToday}mm/jam`}`;
+        markerElement.title = `${area.name} · ${isWildfireRef.current ? `${wf.hotspotSignals} Titik Panas Satelit` : `Curah Hujan ${area.rainfallToday}mm/jam`}`;
 
         const markerDot = document.createElement("span");
         markerDot.className = "terraflux-risk-marker-dot";
         markerDot.style.backgroundColor = riskColors[riskLevel];
+        dotsRef.current[index] = markerDot;
 
         const markerLabel = document.createElement("span");
         markerLabel.className = "terraflux-risk-marker-label";
         markerLabel.textContent = area.name;
+        labelsRef.current[index] = markerLabel;
 
         markerElement.append(markerDot, markerLabel);
         markerElement.addEventListener("click", (event) => {
           event.stopPropagation();
-          setSelectedProvinceId(area.id);
+          setSelectedProvinceIdRef.current(area.id);
           map.flyTo({ center: area.center, zoom: 9.5, essential: true });
         });
 
@@ -151,20 +180,15 @@ export function FloodMap() {
           .addTo(map);
       });
 
+      // Set initial selection
       riskMarkersRef.current.forEach((marker, index) => {
         const selected = demoAreas[index]?.id === activeAreaIdRef.current;
         marker.getElement().setAttribute("data-selected", selected ? "true" : "false");
-        const label = marker.getElement().querySelector<HTMLElement>(".terraflux-risk-marker-label");
-        if (label) label.style.display = selected || map.getZoom() >= 7.2 ? "inline" : "none";
       });
+      updateLabelVisibility();
 
-      map.on("zoom", () => {
-        riskMarkersRef.current.forEach((marker) => {
-          const label = marker.getElement().querySelector<HTMLElement>(".terraflux-risk-marker-label");
-          const isSelected = marker.getElement().getAttribute("data-selected") === "true";
-          if (label) label.style.display = isSelected || map.getZoom() >= 7.2 ? "inline" : "none";
-        });
-      });
+      // Throttled zoom update
+      map.on("zoomend", updateLabelVisibility);
 
       // Synthetic dynamic hazard layers
       const riskFeatures = demoAreas.map((area) => {
@@ -174,7 +198,7 @@ export function FloodMap() {
           properties: {
             id: area.id,
             name: area.name,
-            riskScore: isWildfire ? wf.fireSpreadRisk : area.surfaceRunoff,
+            riskScore: isWildfireRef.current ? wf.fireSpreadRisk : area.surfaceRunoff,
             rainfallToday: area.rainfallToday,
             hotspots: wf.hotspotSignals,
           },
@@ -222,7 +246,7 @@ export function FloodMap() {
         type: "fill",
         source: "terraflux-risk-polygons",
         paint: {
-          "fill-color": isWildfire ? "#F97316" : "#E85D68",
+          "fill-color": isWildfireRef.current ? "#F97316" : "#E85D68",
           "fill-opacity": 0.24,
         },
       });
@@ -232,7 +256,7 @@ export function FloodMap() {
         type: "line",
         source: "terraflux-risk-polygons",
         paint: {
-          "line-color": isWildfire ? "#FCD34D" : "#55D6E8",
+          "line-color": isWildfireRef.current ? "#FCD34D" : "#55D6E8",
           "line-width": 2.2,
           "line-dasharray": [2, 1.5],
         },
@@ -243,7 +267,7 @@ export function FloodMap() {
         type: "line",
         source: "terraflux-waterways",
         paint: {
-          "line-color": isWildfire ? "#EF4444" : "#5FE0C2",
+          "line-color": isWildfireRef.current ? "#EF4444" : "#5FE0C2",
           "line-width": 3,
         },
       });
@@ -252,12 +276,14 @@ export function FloodMap() {
     return () => {
       riskMarkersRef.current.forEach((marker) => marker.remove());
       riskMarkersRef.current = [];
+      dotsRef.current = [];
+      labelsRef.current = [];
       map.remove();
       mapRef.current = null;
     };
-  }, [isWildfire, setSelectedProvinceId, getRiskLevel]);
+  }, [updateLabelVisibility]);
 
-  // Update styles on mode change
+  // Update styles smoothly in-place on mode change WITHOUT destroying map!
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
@@ -272,14 +298,19 @@ export function FloodMap() {
       map.setPaintProperty("terraflux-waterways-layer", "line-color", isWildfire ? "#EF4444" : "#5FE0C2");
     }
 
-    riskMarkersRef.current.forEach((marker, index) => {
-      const area = demoAreas[index];
-      if (!area) return;
-      const riskLevel = getRiskLevel(area);
-      const dot = marker.getElement().querySelector<HTMLElement>(".terraflux-risk-marker-dot");
+    demoAreas.forEach((area, index) => {
+      const riskLevel = isWildfire ? getWildfireMetrics(area.id).riskLevel : area.riskLevel;
+      const dot = dotsRef.current[index];
       if (dot) dot.style.backgroundColor = riskColors[riskLevel];
+      const marker = riskMarkersRef.current[index];
+      if (marker) {
+        const wf = getWildfireMetrics(area.id);
+        const el = marker.getElement();
+        el.setAttribute("aria-label", `${area.name}, risiko ${riskLabels[riskLevel]}`);
+        el.title = `${area.name} · ${isWildfire ? `${wf.hotspotSignals} Titik Panas Satelit` : `Curah Hujan ${area.rainfallToday}mm/jam`}`;
+      }
     });
-  }, [isWildfire, getRiskLevel]);
+  }, [isWildfire]);
 
   // Toggle layers
   useEffect(() => {
@@ -302,12 +333,9 @@ export function FloodMap() {
     riskMarkersRef.current.forEach((marker, index) => {
       const selected = demoAreas[index]?.id === activeAreaId;
       marker.getElement().setAttribute("data-selected", selected ? "true" : "false");
-      const label = marker.getElement().querySelector<HTMLElement>(".terraflux-risk-marker-label");
-      if (label) {
-        label.style.display = selected || (mapRef.current?.getZoom() ?? 0) >= 7.2 ? "inline" : "none";
-      }
     });
-  }, [activeAreaId]);
+    updateLabelVisibility();
+  }, [activeAreaId, updateLabelVisibility]);
 
   const handleSearch = () => {
     const query = searchValue.trim().toLowerCase();

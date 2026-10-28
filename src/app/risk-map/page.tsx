@@ -2,11 +2,11 @@
 
 import { AppShell } from "@/components/app-shell";
 import { FloodMap } from "@/components/flood-map";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 import { Flame, Waves } from "lucide-react";
 
 export default function RiskMapPage() {
-  const { hazardMode } = useRealtimeTelemetry();
+  const { hazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
 
   return (

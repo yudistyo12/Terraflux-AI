@@ -17,8 +17,9 @@ import {
   Waves,
   Flame,
 } from "lucide-react";
-import { useRealtimeTelemetry } from "@/lib/realtime-telemetry";
+import { useHazardControl } from "@/lib/realtime-telemetry";
 import { TelemetryTicker } from "./telemetry-ticker";
+import { TerrafluxLogo } from "./terraflux-logo";
 
 const navigation = [
   { href: "/", label: "Beranda", icon: Globe2 },
@@ -34,38 +35,28 @@ const navigation = [
 function HeaderNav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { hazardMode, setHazardMode } = useRealtimeTelemetry();
+  const { hazardMode, setHazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-slate-950/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-slate-950/95 backdrop-blur-md">
         <div className="mx-auto max-w-[1440px] px-3 sm:px-4 lg:px-6">
           <div className="flex h-16 items-center justify-between gap-2 xl:gap-3">
-            {/* Logo & Brand */}
-            <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300 group-hover:scale-105 shadow-lg ${
-                isWildfire
-                  ? "border-amber-400/50 bg-gradient-to-br from-slate-900 via-amber-950/50 to-orange-950/40 text-amber-200 shadow-amber-500/20"
-                  : "border-cyan-400/40 bg-gradient-to-br from-slate-900 via-cyan-950/50 to-emerald-950/40 text-cyan-200 shadow-cyan-500/20"
-              }`}>
-                <span className={`text-lg font-black tracking-tight font-mono ${isWildfire ? "text-amber-300" : "text-cyan-300"}`}>
-                  T
+            {/* Logo & Brand — Professional Custom Emblem & Clean Brand Name */}
+            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+              <TerrafluxLogo size={38} isWildfire={isWildfire} />
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg sm:text-xl font-extrabold tracking-tight text-white font-sans">
+                  TERRAFLUX
                 </span>
-                <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-slate-950 ${isWildfire ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
-              </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <span className={`text-[9.5px] uppercase font-mono tracking-widest font-bold ${isWildfire ? "text-amber-400" : "text-cyan-400"}`}>
-                    MULTI-HAZARD AI
-                  </span>
-                  <span className="rounded bg-white/5 px-1 py-0.2 text-[8.5px] font-mono font-bold text-slate-300 border border-white/10 hidden sm:inline">
-                    PRO v2.5
-                  </span>
-                </div>
-                <div className="text-base font-extrabold tracking-tight text-white flex items-center gap-1">
-                  TERRAFLUX <span className={`font-mono text-[11px] px-1.5 py-0.2 rounded font-bold ${isWildfire ? "bg-amber-500/20 text-amber-300 border border-amber-400/30" : "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30"}`}>AI</span>
-                </div>
+                <span className={`font-mono text-[11px] sm:text-xs px-1.5 py-0.5 rounded font-extrabold tracking-wider ${
+                  isWildfire
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-400/35"
+                    : "bg-cyan-500/20 text-cyan-300 border border-cyan-400/35"
+                }`}>
+                  AI
+                </span>
               </div>
             </Link>
 
@@ -228,7 +219,7 @@ function HeaderNav() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { hazardMode } = useRealtimeTelemetry();
+  const { hazardMode } = useHazardControl();
   const isWildfire = hazardMode === "wildfire";
 
   return (
@@ -248,13 +239,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             {/* Brand Col */}
             <div>
-              <div className="flex items-center gap-2 text-white font-bold text-base">
-                <div className={`h-7 w-7 rounded-lg border flex items-center justify-center font-mono font-bold text-xs ${
-                  isWildfire ? "bg-amber-500/20 border-amber-400/40 text-amber-300" : "bg-cyan-500/20 border-cyan-400/40 text-cyan-300"
-                }`}>
-                  T
-                </div>
-                TERRAFLUX AI
+              <div className="flex items-center gap-2.5 text-white font-bold text-base">
+                <TerrafluxLogo size={30} isWildfire={isWildfire} />
+                <span className="font-extrabold tracking-tight">TERRAFLUX AI</span>
               </div>
               <p className="mt-3 text-slate-400 leading-relaxed text-xs">
                 Platform intelijen geospasial terpadu untuk analisis risiko multi-bencana: banjir perkotaan dan kebakaran hutan & lahan di Indonesia.
