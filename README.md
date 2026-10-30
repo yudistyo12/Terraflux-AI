@@ -1,4 +1,4 @@
-# TERRAFLUX AI — Platform Intelijen Risiko Multi-Bencana Nasional
+# TERRAFLUX AI — Dashboard Geospasial Interaktif untuk Mitigasi Risiko Banjir & Kebakaran Hutan dan Lahan
 
 **TERRAFLUX AI** adalah platform *Multi-Hazard Disaster Risk Intelligence* generasi berikutnya yang menggabungkan analitik geospasial komprehensif, telemetri lingkungan *real-time*, model skrining neural *explainable*, dan simulator mitigasi *What-If* untuk 34 Provinsi di Indonesia.
 
