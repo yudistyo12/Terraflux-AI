@@ -6,12 +6,12 @@ Dirancang untuk kompetisi inovasi teknologi dan kesiapsiagaan operasional pemang
 
 ---
 
-## 🌟 Fitur Utama Platform
+## Fitur Utama Platform
 
 ### 1. Sistem Multi-Bencana (Multi-Hazard Architecture)
 Dukungan penuh untuk dua ancaman hidrometeorologis dan iklim terbesar di Indonesia yang dapat diganti secara instan di seluruh ekosistem aplikasi:
-- 🌊 **Banjir Perkotaan & Daerah Aliran Sungai (DAS):** Analisis curah hujan radar, kapasitas drainase perkotaan, koefisien limpasan cekungan (*surface runoff*), dan sensor Tinggi Muka Air (TMA).
-- 🔥 **Kebakaran Hutan & Lahan Gambut (Karhutla):** Deteksi radiasi termal satelit (MODIS / VIIRS), indeks kekeringan serasah (*Keetch-Byram Drought Index / FWI*), vektor kecepatan angin, dan kerentanan kubah gambut dalam (*peatland*).
+- **Banjir Perkotaan & Daerah Aliran Sungai (DAS):** Analisis curah hujan radar, kapasitas drainase perkotaan, koefisien limpasan cekungan (*surface runoff*), dan sensor Tinggi Muka Air (TMA).
+- **Kebakaran Hutan & Lahan Gambut (Karhutla):** Deteksi radiasi termal satelit (MODIS / VIIRS), indeks kekeringan serasah (*Keetch-Byram Drought Index / FWI*), vektor kecepatan angin, dan kerentanan kubah gambut dalam (*peatland*).
 
 ### 2. Cakupan 34 Provinsi Seluruh Indonesia
 Database geospasial terintegrasi mencakup seluruh 34 provinsi di Indonesia:
@@ -42,7 +42,7 @@ Simulator intervensi rekayasa interaktif dengan umpan balik fisik terukur:
 
 ---
 
-## 🎯 Keselarasan dengan UN Sustainable Development Goals (SDGs)
+## Keselarasan dengan UN Sustainable Development Goals (SDGs)
 
 1. **SDG 11: Kota dan Komunitas yang Berkelanjutan (Target 11.5)**
    Mengurangi kerugian ekonomi dan risiko korban jiwa akibat bencana hidrometeorologis perkotaan melalui pemodelan tata air presisi.
@@ -53,7 +53,7 @@ Simulator intervensi rekayasa interaktif dengan umpan balik fisik terukur:
 
 ---
 
-## 🛠️ Arsitektur & Teknologi
+## Arsitektur & Teknologi
 
 - **Framework:** Next.js 16 (App Router)
 - **Library UI:** React 19, Tailwind CSS v4, Lucide React
@@ -64,7 +64,7 @@ Simulator intervensi rekayasa interaktif dengan umpan balik fisik terukur:
 
 ---
 
-## 🚀 Panduan Menjalankan Aplikasi
+## Panduan Menjalankan Aplikasi
 
 ### 1. Prasyarat
 - Node.js versi 18+ atau 20+
@@ -95,7 +95,7 @@ npm run build
 
 ---
 
-## ⚖️ Transparansi Data & Pernyataan Integritas
+## Transparansi Data & Pernyataan Integritas
 
 TERRAFLUX AI dibangun sebagai purwarupa sistem pendukung keputusan (*decision-support system prototype*) berbasis data observasi geospasial, pemodelan screening transparan, dan skenario demonstratif akademik. 
 
