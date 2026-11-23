@@ -64,8 +64,9 @@ const LiveTelemetryContext = createContext<LiveTelemetryState | null>(null);
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [hazardMode, setHazardMode] = useState<HazardMode>(() => {
     if (typeof window !== "undefined") {
-      const savedMode = window.localStorage.getItem("terraflux-hazard-mode");
-      if (savedMode === "flood" || savedMode === "wildfire") return savedMode;
+      try {
+        window.localStorage.removeItem("terraflux-hazard-mode");
+      } catch {}
     }
     return "flood";
   });
